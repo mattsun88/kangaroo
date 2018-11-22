@@ -8,13 +8,13 @@
 #include "randwalk.h"
 
 #define P_BITLEN 160
-#define L_xNUM 8//how many x 
+#define L_xNUM 1//how many x 
 
 using namespace NTL;
 using namespace std;
 
 void set_initstate(ZZ& P,ZZ& p,ZZ& g,long p_bitlen);
-void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w);
+int MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp);
 
 int main(){
   ZZ P,p,g,m_x[L_xNUM+1],y[L_xNUM+1];//y=g^x mod P, g^p=1 mod P
@@ -30,17 +30,31 @@ int main(){
 
   set_initstate(P,p,g,P_BITLEN);
 
+  ZZ seed;
+  time_t t = time(NULL);
+  seed = (long)t;
+  SetSeed(seed);
+
   ZZ w;//x range(0<=x<w)
-  w = to_ZZ(pow(2,25));//2^20  
+  w = to_ZZ(pow(2,20));//2^20  
   for(int i=1;i<=L_xNUM;i++){
-  x[i] = RandomBnd(w-1)+1;
-  y[i] = PowerMod(g,x[i],P);
+    x[i] = RandomBnd(w-1)+1;
+    y[i] = PowerMod(g,x[i],P);
   }
 
   start = std::chrono::system_clock::now();
-  MYDLP(P,p,g,m_x,y,w);
+  int fail=0;
+  int count=0;
+  int sum=0;
+  int tmp=0;
+  for(;count<100;count++){
+    if(MYDLP(P,p,g,m_x,y,w,tmp)==1)
+      fail++;
+    sum +=tmp;
+  }
   end = std::chrono::system_clock::now();
-
+  cout<<"avg count="<<sum<<endl;
+  cout<<"fail="<<fail<<endl;
   cout<<"P="<<P<<endl;
   cout<<"p="<<p<<endl;
   cout<<"g="<<g<<endl;
@@ -73,7 +87,7 @@ void set_initstate(ZZ& P,ZZ& p,ZZ& g,long p_bitlen){
   g = PowerMod(g,2,P);
 }
 
-void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w){
+int MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
 
   ZZ m,N;
   m = sqrt(L_xNUM*to_long(w));
@@ -88,6 +102,7 @@ void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w){
   //walk.R_print();
   //first tame step(k==1)
   //1
+
   a[1]=PowerMod(g,w,P);
   a0[1]=a[1];
   e[1]=w;
@@ -147,15 +162,17 @@ void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w){
   }
   /*
   for(int i=1;i<=L_xNUM;i++){
-    cout<<"a"<<i<<" = "<<a[i]<<endl;
-    cout<<"e"<<i<<" = "<<e[i]<<endl;
-    cout<<"a"<<i<<" = g^e"<<i<<" : "<<a[i]%P<<" = "<<PowerMod(g,e[i],P)<<endl;
-    }*/
+  cout<<"a"<<i<<" = "<<a[i]<<endl;
+  cout<<"e"<<i<<" = "<<e[i]<<endl;
+  cout<<"a"<<i<<" = g^e"<<i<<" : "<<a[i]%P<<" = "<<PowerMod(g,e[i],P)<<endl;
+  }*/
 
   ////////////////////////////////////////////////////////
 
   cout<<"wild"<<endl;
   //wild
+  int count=0;
+  int loop=0;
   for(int k=1;k<=L_xNUM;k++){
     //(W1)
     b[k]=y[k];
@@ -164,27 +181,43 @@ void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w){
     d[k]=u[k];
   rset2: 
     //(W2)
+    if(count>5&&loop==0){
+      b[k] = MulMod(b0[k],PowerMod(g,m,P),P);
+      b0[k] = b[k];
+      u[k]=u[k]+m;
+      d[k]=u[k];
+      loop++;
+      puts("OneMore!");
+    }
+    if(count>10){
+      tmp=10;
+      return 1;
+    }
     for(int i=1;;i++){
       //(a)
       d[k]=AddMod(d[k],walk.get_r(b[k]),p);
       b[k]=walk.get_R(b[k]);
-      if(b[k]%P!=MulMod(y[k],PowerMod(g,d[k],P),P)){cout<<b[k]%P<<" = "<<MulMod(y[k],PowerMod(g,d[k],P),P)<<endl;exit(1);}
+      //if(b[k]%P!=MulMod(y[k],PowerMod(g,d[k],P),P)){cout<<b[k]%P<<" = "<<MulMod(y[k],PowerMod(g,d[k],P),P)<<endl;exit(1);}
       //(b)
       for(int h=1;h<=L_xNUM;h++){
 	if(b[k]==a[h]){
 	  x[k]= SubMod(e[h],d[k],p);
 	  /*
-	  cout<<"a = "<<a[h][to_int(N)]<<endl;
-	  cout<<"b = "<<b[k][i]<<endl;
-	  cout<<"e = "<<e[h]<<endl;
-	  cout<<"d = "<<d[k]<<endl;
-	  cout<<"h = "<<h<<endl;*/
-	  break;
+	    cout<<"a = "<<a[h][to_int(N)]<<endl;
+	    cout<<"b = "<<b[k][i]<<endl;
+	    cout<<"e = "<<e[h]<<endl;
+	    cout<<"d = "<<d[k]<<endl;
+	    cout<<"h = "<<h<<endl;*/
+	  cout<<b[k]<<","<<a[h]<<endl;
+	  tmp=count;
+	  return 0;
 	}
       }
-      if(x[k]!=0)break;
+      //if(x[k]!=0)break;
       //(c)
       if(d[k]>max_e){
+	count++;
+	//cout<<"err"<<endl;
 	b[k] = MulMod(b0[k],g,P);
 	b0[k] = b[k];
 	u[k]=u[k]+1;
