@@ -9,13 +9,14 @@
 
 #define P_BITLEN 160
 #define L_xNUM 10//how many x 
+#define LOOP 10
 
 using namespace NTL;
 using namespace std;
 
 void set_initstate(ZZ& P,ZZ& p,ZZ& g,long p_bitlen);
-int MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp);
-Randwalk MakeTame(ZZ P,ZZ p,ZZ g,ZZ w,ZZ a[],ZZ e[],ZZ &rete);
+void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp);
+Randwalk MakeTame(ZZ P,ZZ p,ZZ g,ZZ w,ZZ a[],ZZ e[],ZZ &Rete);
 
 int main(){
   ZZ P,p,g,m_x[L_xNUM+1],y[L_xNUM+1];//y=g^x mod P, g^p=1 mod P
@@ -23,11 +24,6 @@ int main(){
 
   std::chrono::system_clock::time_point  start, end;
   ofstream ofs;
-
-  /*
-  for(int i=0;i<=L_xNUM;i++){
-    x[i]=-1;
-    }*/
 
   set_initstate(P,p,g,P_BITLEN);
 
@@ -38,51 +34,40 @@ int main(){
 
   ZZ w;//x range(0<=x<w)
   w = to_ZZ(pow(2,20));//2^20  
-  /*
-  for(int i=1;i<=L_xNUM;i++){
-    x[i] = RandomBnd(w-1)+1;
-    y[i] = PowerMod(g,x[i],P);
-  }
-  */
   start = std::chrono::system_clock::now();
   int fail=0;
   int count=0;
   int sum=0;
   int tmp=0;
-  for(;count<10;count++){
+  int failnum=0;
+  for(;count<LOOP;count++){
     puts("---------------------------------------------------");
     for(int i=1;i<=L_xNUM;i++){
       x[i] = RandomBnd(w-1)+1;
       y[i] = PowerMod(g,x[i],P);
       m_x[i] = to_ZZ(0);
     }
-    if(MYDLP(P,p,g,m_x,y,w,tmp)==1)
-      fail++;
+
+    MYDLP(P,p,g,m_x,y,w,tmp);
     sum +=tmp;
+
     for(int i=1;i<=L_xNUM;i++){
-      //cout<<"y"<<i<<" = "<<y[i]<<endl;
-      //cout<<"x"<<i<<" = "<<x[i]<<endl;
-      //cout<<"m_x"<<i<<" = "<<m_x[i]<<endl;
-      if(x[i]!=m_x[i]){cout<<"false"<<endl;}
+      if(x[i]!=m_x[i]){
+	cout<<"fail"<<endl;
+	failnum+=1;
+      }
     }
   }
   end = std::chrono::system_clock::now();
-  cout<<"count="<<sum<<endl;
-  //cout<<"fail="<<fail<<endl;
+  cout<<"avg count="<<(double)sum/(double)(LOOP * L_xNUM)<<endl;
+  cout<<"fail="<<failnum<<endl;
   cout<<"P="<<P<<endl;
   cout<<"p="<<p<<endl;
   cout<<"g="<<g<<endl;
   cout<<"w="<<w<<endl;
-  /*
-  for(int i=1;i<=L_xNUM;i++){
-    //cout<<"y"<<i<<" = "<<y[i]<<endl;
-    //cout<<"x"<<i<<" = "<<x[i]<<endl;
-    //cout<<"m_x"<<i<<" = "<<m_x[i]<<endl;
-    if(x[i]!=m_x[i]){cout<<"false"<<endl;}
-  }
-  */
+  
   double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
-  cout<<"time="<<elapsed<<"milli sec"<<endl;
+  cout<<"avg time="<<elapsed/LOOP<<"milli sec"<<endl;
   /*
   ofs.open( "MsDLP2.txt" , ios::out | ios::app);
   ofs << L_xNUM <<","<<L_xNUM*sqrt(to_long(w))<<","<< sqrt(L_xNUM*to_long(w))<<","<< elapsed<< endl;
@@ -103,24 +88,20 @@ void set_initstate(ZZ& P,ZZ& p,ZZ& g,long p_bitlen){
   g = PowerMod(g,2,P);
 }
 
-int MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
+void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
 
   ZZ m,N;
   m = sqrt(L_xNUM*to_long(w));
   N = m/(2*L_xNUM);
-  cout<<N<<endl;
 
   ZZ a[L_xNUM+1];
   ZZ b[L_xNUM+1],b0[L_xNUM+1];
   ZZ d[L_xNUM+1],e[L_xNUM+1],en,u[L_xNUM+1];
   ZZ max_e;
   Randwalk walk(g,m,P);
-  //puts("--------------------------------------------------------------");
-  walk = MakeTame(P,p,g,w,a,e,max_e);
-  //puts("---------------------------------");
-  //walk.R_print();
 
-  ////////////////////////////////////////////////////////
+  //tame系列を作成しランダムウォーク関数を受け取る
+  walk = MakeTame(P,p,g,w,a,e,max_e);
 
   cout<<"wild"<<endl;
   //wild
@@ -135,7 +116,7 @@ int MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
     count=0;
   rset2: 
     //(W2)
-    if(count>5&&loop==0){
+    if(count>5&&loop==0){ //5回失敗が続いたらtame系列を作り直す
       walk=MakeTame(P,p,g,w,a,e,max_e);
       loop++;
       puts("OneMore!");
@@ -154,51 +135,49 @@ int MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
 	    cout<<"b = "<<b[k][i]<<endl;
 	    cout<<"e = "<<e[h]<<endl;
 	    cout<<"d = "<<d[k]<<endl;
-	    cout<<"h = "<<h<<endl;*/
-	  cout<<b[k]<<","<<a[h]<<endl;
+	    cout<<"h = "<<h<<endl;
+	  */
 	  tmp+=count;
-	  //return 0;
 	}
       }
-      if(x[k]!=0)break;
+      if(x[k]!=0)
+	break;
       //(c)
-      if(d[k]>max_e){
+      if(d[k]>max_e){ //Tame系列の値を通り越したら失敗。値を1増やしてやり直し
 	count++;
-	//cout<<"err"<<endl;
 	b[k] = MulMod(b0[k],g,P);
 	b0[k] = b[k];
 	u[k]=u[k]+1;
 	d[k]=u[k];
 	goto rset2;
       }
-      if(count>10){
-	cout<<"fail"<<endl;
+      if(count>10){ //10回失敗したら探索打ち切りで失敗を出力
+	cout<<"count>10..."<<endl;
 	x[k]=to_ZZ(0);
+	tmp+=10;
 	break;
       }
     }
   }
 }
 
-Randwalk MakeTame(ZZ P,ZZ p,ZZ g,ZZ w,ZZ a[],ZZ e[],ZZ &rete){
+Randwalk MakeTame(ZZ P,ZZ p,ZZ g,ZZ w,ZZ a[],ZZ e[],ZZ &Rete){
 
   ZZ m,N;
   m = sqrt(L_xNUM*to_long(w));
   N = m/(2*L_xNUM);
-  cout<<N<<endl;
 
   ZZ an ,a0[L_xNUM+1];
-  //ZZ b[L_xNUM+1],b0[L_xNUM+1];
   ZZ en,f[L_xNUM+1];
   ZZ max_e;
   Randwalk walk(g,m,P);
-  cout<<"Make Tame..."<<endl;
+  cout<<"Make Tames..."<<endl;
   //walk.R_print();
   a[1]=PowerMod(g,w,P);
   a0[1]=a[1];
   e[1]=w;
   f[1]=w; 
-  //2(0<=i<N-1)
+  //(0<=i<N-1)
   for(int i=0;i<N;i++){
     e[1] = AddMod(e[1],walk.get_r(a[1]),p);
     a[1]=walk.get_R(a[1]);
@@ -229,7 +208,7 @@ Randwalk MakeTame(ZZ P,ZZ p,ZZ g,ZZ w,ZZ a[],ZZ e[],ZZ &rete){
       }
       
     }
-    //T2+
+    //T3
     an = a[k];
     en = e[k];
     for(int i=0;i<N;i++){
@@ -251,6 +230,6 @@ Randwalk MakeTame(ZZ P,ZZ p,ZZ g,ZZ w,ZZ a[],ZZ e[],ZZ &rete){
     }
     if(max_e<e[k]){max_e=e[k];}
   }
-  rete = max_e;
+  Rete = max_e;
   return walk;
 }
