@@ -61,10 +61,10 @@ int main(){
   end = std::chrono::system_clock::now();
   cout<<"avg count="<<(double)sum/(double)(LOOP * L_xNUM)<<endl;
   cout<<"fail="<<failnum<<endl;
-  cout<<"P="<<P<<endl;
-  cout<<"p="<<p<<endl;
-  cout<<"g="<<g<<endl;
-  cout<<"w="<<w<<endl;
+  //cout<<"P="<<P<<endl;
+  //cout<<"p="<<p<<endl;
+  //cout<<"g="<<g<<endl;
+  //cout<<"w="<<w<<endl;
   
   double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
   cout<<"avg time="<<elapsed/LOOP<<"milli sec"<<endl;
