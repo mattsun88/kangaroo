@@ -9,7 +9,7 @@
 
 #define P_BITLEN 160
 #define L_xNUM 10//how many x 
-#define LOOP 10
+#define LOOP 100
 
 using namespace NTL;
 using namespace std;
@@ -68,11 +68,11 @@ int main(){
   
   double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
   cout<<"avg time="<<elapsed/LOOP<<"milli sec"<<endl;
-  /*
-  ofs.open( "MsDLP2.txt" , ios::out | ios::app);
-  ofs << L_xNUM <<","<<L_xNUM*sqrt(to_long(w))<<","<< sqrt(L_xNUM*to_long(w))<<","<< elapsed<< endl;
+  
+  ofs.open( "10.txt" , ios::out | ios::app);
+  ofs << elapsed/LOOP<< endl;
   ofs.close();
-  */
+  
 
 }
 
