@@ -8,9 +8,10 @@
 #include "randwalk.h"
 
 #define P_BITLEN 160
-#define L_xNUM 10//how many x 
+//#define L_xNUM 10//how many x 
 #define LOOP 100
 
+int L_xNUM =  1;
 using namespace NTL;
 using namespace std;
 
@@ -19,6 +20,9 @@ void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp);
 Randwalk MakeTame(ZZ P,ZZ p,ZZ g,ZZ w,ZZ a[],ZZ e[],ZZ &Rete);
 
 int main(){
+
+  while(L_xNUM<20){
+    cout<<"L="<<L_xNUM<<endl;
   ZZ P,p,g,m_x[L_xNUM+1],y[L_xNUM+1];//y=g^x mod P, g^p=1 mod P
   ZZ x[L_xNUM+1];
 
@@ -41,7 +45,7 @@ int main(){
   int tmp=0;
   int failnum=0;
   for(;count<LOOP;count++){
-    puts("---------------------------------------------------");
+    //puts("---------------------------------------------------");
     for(int i=1;i<=L_xNUM;i++){
       x[i] = RandomBnd(w-1)+1;
       y[i] = PowerMod(g,x[i],P);
@@ -53,13 +57,13 @@ int main(){
 
     for(int i=1;i<=L_xNUM;i++){
       if(x[i]!=m_x[i]){
-	cout<<"fail"<<endl;
+	//cout<<"fail"<<endl;
 	failnum+=1;
       }
     }
   }
   end = std::chrono::system_clock::now();
-  cout<<"avg count="<<(double)sum/(double)(LOOP * L_xNUM)<<endl;
+  //cout<<"avg count="<<(double)sum/(double)(LOOP * L_xNUM)<<endl;
   cout<<"fail="<<failnum<<endl;
   //cout<<"P="<<P<<endl;
   //cout<<"p="<<p<<endl;
@@ -68,12 +72,14 @@ int main(){
   
   double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
   cout<<"avg time="<<elapsed/LOOP<<"milli sec"<<endl;
-  
-  ofs.open( "10.txt" , ios::out | ios::app);
+  ofs.open( "11_28_5_f.txt" , ios::out | ios::app);
+  ofs << failnum<< endl;
+  ofs.close();  
+  ofs.open( "11_28_5.txt" , ios::out | ios::app);
   ofs << elapsed/LOOP<< endl;
   ofs.close();
-  
-
+  L_xNUM++;
+  }
 }
 
 void set_initstate(ZZ& P,ZZ& p,ZZ& g,long p_bitlen){
@@ -103,7 +109,7 @@ void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
   //tame系列を作成しランダムウォーク関数を受け取る
   walk = MakeTame(P,p,g,w,a,e,max_e);
 
-  cout<<"wild"<<endl;
+  //cout<<"wild"<<endl;
   //wild
   int count=0;
   int loop=0;
@@ -116,11 +122,13 @@ void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
     count=0;
   rset2: 
     //(W2)
+    /*
     if(count>5&&loop==0){ //5回失敗が続いたらtame系列を作り直す
       walk=MakeTame(P,p,g,w,a,e,max_e);
       loop++;
-      puts("OneMore!");
+      //puts("OneMore!");
     }
+    */
     for(int i=1;;i++){
       //(a)
       d[k]=AddMod(d[k],walk.get_r(b[k]),p);
@@ -151,8 +159,8 @@ void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
 	d[k]=u[k];
 	goto rset2;
       }
-      if(count>10){ //10回失敗したら探索打ち切りで失敗を出力
-	cout<<"count>10..."<<endl;
+      if(count>5){ //10回失敗したら探索打ち切りで失敗を出力
+	//cout<<"count>10..."<<endl;
 	x[k]=to_ZZ(0);
 	tmp+=10;
 	break;
@@ -171,7 +179,7 @@ Randwalk MakeTame(ZZ P,ZZ p,ZZ g,ZZ w,ZZ a[],ZZ e[],ZZ &Rete){
   ZZ en,f[L_xNUM+1];
   ZZ max_e;
   Randwalk walk(g,m,P);
-  cout<<"Make Tames..."<<endl;
+  //cout<<"Make Tames..."<<endl;
   //walk.R_print();
   a[1]=PowerMod(g,w,P);
   a0[1]=a[1];
