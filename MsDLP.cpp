@@ -150,14 +150,14 @@ void MYDLP(ZZ P,ZZ p,ZZ g,ZZ *x,ZZ *y,ZZ w,int &tmp){
       b[k]=walk.get_R(b[k]);
       
       //(b)
-      if(L_xNUM > 0 ){
+      //if(L_xNUM > 0 ){
 	ZZ tmpnum;
 	tame.Search(b[k],tmpnum);
 	if(tmpnum!=0){
 	  x[k]= SubMod(tmpnum,d[k],p);
 	  tmp+=count;	  
 	}
-      }
+      //}
       /*
       else{
 	for(int h=1;h<=L_xNUM;h++){
